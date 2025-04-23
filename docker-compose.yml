@@ -1,0 +1,42 @@
+version: "3.8"
+services:
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+  migrations:
+    image: flyway/flyway
+    volumes:
+      - ./migrations/db:/flyway/sql
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_DATABASE}
+      - FLYWAY_USER=${DB_USERNAME}
+      - FLYWAY_PASSWORD=${DB_PASSWORD}
+      - FLYWAY_DEFAULT_SCHEMA=${DB_SCHEMA}
+    depends_on:
+      - db
+    command: migrate
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - migrations
+
+volumes:
+  postgres-data:
